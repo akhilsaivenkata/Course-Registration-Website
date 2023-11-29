@@ -1,0 +1,52 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+}
+
+header, footer {
+    background: #333;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    background: #555;
+}
+
+nav button {
+    padding: 10px 15px;
+    margin: 10px;
+    border: none;
+    background: #f8f8f8;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+nav button:hover {
+    background: #ddd;
+}
+
+main {
+    padding: 20px;
+    min-height: 400px; /* Adjust as needed */
+}
+
+footer p {
+    margin: 0;
+}
+
+#content-area {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
