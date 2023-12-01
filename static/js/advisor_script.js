@@ -1,9 +1,13 @@
 document.getElementById('review-plans-btn').addEventListener('click', function() {
-    loadContent('Review Degree Plans');
+    fetch('/advisor/review_plans').then(response => response.json()).then(data => {
+        document.getElementById('content-area').textContent = JSON.stringify(data);
+    });
 });
 
 document.getElementById('finalize-plans-btn').addEventListener('click', function() {
-    loadContent('Finalize Degree Plans');
+    fetch('/advisor/finalize_plan').then(response => response.json()).then(data => {
+        document.getElementById('content-area').textContent = JSON.stringify(data);
+    });
 });
 
 document.getElementById('change-requests-btn').addEventListener('click', function() {

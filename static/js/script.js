@@ -1,5 +1,7 @@
 document.getElementById('view-plan-btn').addEventListener('click', function() {
-    loadContent('View Degree Plan');
+    fetch('/view_degree_plan').then(response => response.json()).then(data => {
+        document.getElementById('content-area').textContent = JSON.stringify(data);
+    });
 });
 
 document.getElementById('modify-plan-btn').addEventListener('click', function() {
@@ -7,7 +9,9 @@ document.getElementById('modify-plan-btn').addEventListener('click', function() 
 });
 
 document.getElementById('submit-request-btn').addEventListener('click', function() {
-    loadContent('Submit Change Request');
+    fetch('/submit_degree_plan').then(response => response.json()).then(data => {
+        document.getElementById('content-area').textContent = JSON.stringify(data);
+    });
 });
 
 document.getElementById('view-schedule-btn').addEventListener('click', function() {
