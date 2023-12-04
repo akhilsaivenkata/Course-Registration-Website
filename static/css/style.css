@@ -50,3 +50,22 @@ footer p {
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+.degree-plan-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.degree-plan-table th, .degree-plan-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.degree-plan-table th {
+    background-color: #f4f4f4;
+}
+
+.degree-plan-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}

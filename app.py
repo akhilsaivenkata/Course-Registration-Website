@@ -1,12 +1,44 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session,flash
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-
+app.secret_key = 'secret'
 # Configure SQLAlchemy
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mcis.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+core_courses = [
+    {'course_code': 'MCIS5103', 'title': 'Advanced Programming Concepts', 'description': 'Advanced concepts in programming.'},
+    {'course_code': 'MCIS5133', 'title': 'Database Management Systems', 'description': 'In-depth study of database systems.'},
+    {'course_code': 'MCIS6163', 'title': 'Computer Networking', 'description': 'Study of computer networking principles.'},
+    {'course_code': 'MCIS6173', 'title': 'Information & Networking Security', 'description': 'Security in networking and information systems.'}
+]
+
+elective_courses = [
+    {'course_code': 'MCIS5003', 'title': 'Survey of Information Technology', 'description': 'Comprehensive overview of Information Technology'},
+    {'course_code': 'MCIS5013', 'title': 'UNIX Operating System', 'description': 'In-depth study of the UNIX operating system'},
+    {'course_code': 'MCIS5113', 'title': 'Web Programming: Client Side', 'description': 'Client-side programming for web applications'},
+    {'course_code': 'MCIS5313', 'title': 'Data Structures and Algorithms', 'description': 'Advanced data structures and algorithms'},
+    {'course_code': 'MCIS5413', 'title': 'Web Programming: Server Side', 'description': 'Server-side programming for web applications'},
+    {'course_code': 'MCIS6123', 'title': 'Decision Science', 'description': 'Decision-making processes in business'},
+    {'course_code': 'MCIS6133', 'title': 'User Interface Design', 'description': 'Principles and practices of user interface design'},
+    {'course_code': 'MCIS6153', 'title': 'Software Engineering', 'description': 'Software development life cycle and methodologies'},
+    {'course_code': 'MCIS6183', 'title': 'Special Topics in Computer Science', 'description': 'Various current topics in computer science'},
+    {'course_code': 'MCIS6193', 'title': 'Special Topics in Information Systems', 'description': 'Various current topics in information systems'},
+    {'course_code': 'MCIS6201-6', 'title': 'Special Topics Seminar', 'description': 'Seminars on special topics in computer science and information systems'},
+    {'course_code': 'MCIS6213', 'title': 'Applied Cryptography', 'description': 'Practical aspects of cryptography'},
+    {'course_code': 'MCIS6223', 'title': 'Vulnerability and Risk Assessment', 'description': 'Assessing and managing vulnerabilities and risks in systems'},
+    {'course_code': 'MCIS6233', 'title': 'Traceable Systems and Computer Forensics', 'description': 'Forensic analysis of computer systems'},
+    {'course_code': 'MCIS6243', 'title': 'Wireless and Mobile Security', 'description': 'Security issues in wireless and mobile networks'},
+    {'course_code': 'MCIS6253', 'title': 'Privacy Compliant Systems Design', 'description': 'Designing systems that comply with privacy laws and regulations'},
+    {'course_code': 'MCIS6263', 'title': 'Big Data', 'description': 'Technologies and methodologies for handling big data'},
+    {'course_code': 'MCIS6273', 'title': 'Data Mining', 'description': 'Methods for extracting useful information from large datasets'},
+    {'course_code': 'MCIS6283', 'title': 'Machine Learning', 'description': 'Algorithms and techniques in machine learning'},
+    {'course_code': 'MCIS6293', 'title': 'Special Topics in Cybersecurity', 'description': 'Various current topics in cybersecurity'},
+    {'course_code': 'MCIS6983', 'title': 'Internship in Computer and Information Science', 'description': 'Practical work experience in computer and information science'},
+    {'course_code': 'MCIS6911-6', 'title': 'Thesis', 'description': 'Research project in computer and information science'}
+]
 
 # Define models
 class User(db.Model):
@@ -28,14 +60,17 @@ class Course(db.Model):
 class DegreePlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    course_code = db.Column(db.Integer, db.ForeignKey('course.course_code'), nullable=False)
     approved = db.Column(db.Boolean, default=False)
 
 class Section(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    section_number = db.Column(db.String(10))
+    section_name = db.Column(db.String(100), unique=True, nullable=False)
+    course_code = db.Column(db.Integer, db.ForeignKey('course.course_code'), nullable=False)
     semester = db.Column(db.String(20))
+    meeting_time = db.Column(db.String(100))  # Example format: "MWF 10-11 AM"
+    location = db.Column(db.String(100))      # Example: "Building A, Room 101"
+    instructor = db.Column(db.String(100))    # Name of the instructor
     capacity = db.Column(db.Integer, default=15)
     current_enrollment = db.Column(db.Integer, default=0)
 
@@ -44,11 +79,59 @@ class Enrollment(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)
 
+##class Schedule(db.Model):
+#    id = db.Column(db.Integer, primary_key=True)
+##    section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)
+#    
+#
+#    # Establish a relationship with the Section model
+#    section = db.relationship('Section', back_populates='schedule')*/
+
+
+def initialize_courses():
+    existing_courses = Course.query.count()
+    if existing_courses == 0:
+        for course_data in core_courses:
+            course = Course(**course_data, is_core=True)
+            db.session.add(course)
+
+        for course_data in elective_courses:
+            course = Course(**course_data, is_core=False)
+            db.session.add(course)
+
+        db.session.commit()
+        print("Courses initialized in the database.")
+    else:
+        print("Courses are already initialized.")
+
 # Create the database tables
 #@app.before_first_request
 #def create_tables():
 with app.app_context():
     db.create_all()
+    initialize_courses()
+
+@app.route('/login', methods=['GET'])
+def login_form():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+    user = User.query.filter_by(username=username).first()
+    if user and user.password_hash == password:
+        session['username'] = user.username
+        session['role'] = user.role
+        return redirect(url_for('index'))
+    flash('Invalid username or password')
+    return redirect(url_for('login_form'))
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    session.pop('role', None)
+    return redirect(url_for('login_form'))
 
 # Routes for the student interface
 @app.route('/')
@@ -60,7 +143,34 @@ def view_degree_plan():
     # Placeholder for actual database query
     # degree_plan = DegreePlan.query.filter_by(student_id=session['user_id']).first()
     # return jsonify(degree_plan.to_dict())
-    return jsonify({"courses": ["Course 1", "Course 2", "Course 3"]})
+    if 'username' not in session:
+        return redirect(url_for('login_form'))
+
+    student_id = User.query.filter_by(username=session['username']).first().id
+    print(student_id)
+    #degree_plans = DegreePlan.query.filter_by(student_id=student_id).all()
+
+    #print(degree_plans)
+    plan_data = []
+    degree_plans = DegreePlan.query.filter_by(student_id=student_id).all()
+    print("Degree Plans:", degree_plans)
+
+    for plan in degree_plans:
+        course_details = Course.query.filter_by(course_code=plan.course_code).first()
+        if course_details:
+            plan_data.append({
+                "course_id": course_details.id,
+                "course_code": course_details.course_code,
+                "title": course_details.title,
+                "description": course_details.description,
+                "is_core": course_details.is_core,
+                "approved": plan.approved  # Assuming this field is part of the DegreePlan model
+            })
+        else:
+            print(f"No course found with code: {plan.course_code}")       
+    print(plan_data)
+    return jsonify(plan_data)
+    #return jsonify({"courses": ["Course 1", "Course 2", "Course 3"]})
 
 @app.route('/submit_degree_plan', methods=['POST'])
 def submit_degree_plan():
@@ -132,31 +242,238 @@ def finalize_plan():
 def admin_index():
     return render_template('adminInterface.html')
 
-# Routes for the administrative interface
-@app.route('/admin/manage_users', methods=['GET', 'POST'])
-def manage_users():
-    # Logic to manage user accounts
-    return jsonify({"users": ["User 1", "User 2"]})
 
-@app.route('/admin/manage_courses', methods=['GET', 'POST'])
-def manage_courses():
-    # Logic to manage course offerings
-    return jsonify({"courses": ["Course 1", "Course 2"]})
+@app.route('/admin/manage_users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    user_data = [{"id": user.id, "username": user.username, "role": user.role} for user in users]
 
-@app.route('/admin/manage_degree_plans', methods=['GET', 'POST'])
+    # Log the user data
+    print("Sending user data:", user_data)
+
+    return jsonify(user_data)
+    #return jsonify([{"username": user.username, "role": user.role} for user in users])
+
+@app.route('/admin/manage_users/add', methods=['POST'])
+def add_user():
+    username = request.form['username']
+    email = request.form['email']
+    password_hash = request.form['password']
+    role = request.form['role']
+    new_user = User(username=username, email=email, password_hash=password_hash, role=role)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"message": "User added successfully"})
+
+@app.route('/admin/manage_users/delete', methods=['POST'])
+def delete_user():
+    username = request.form['username']
+    user = User.query.filter_by(username=username).first()
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "User deleted successfully"})
+    return jsonify({"message": "User not found"})
+
+
+
+@app.route('/admin/manage_courses/add', methods=['POST'])
+def add_course():
+    course_code = request.form['course_code']
+    title = request.form['title']
+    description = request.form['description']
+    is_core = 'is_core' in request.form
+    new_course = Course(course_code=course_code, title=title, description=description, is_core=is_core)
+    db.session.add(new_course)
+    db.session.commit()
+    return jsonify({"message": "Course added successfully"})
+
+# Admin: Manage Courses - Delete a Course
+@app.route('/admin/manage_courses/delete', methods=['POST'])
+def delete_course():
+    course_code = request.form['course_code']
+    course = Course.query.filter_by(course_code=course_code).first()
+    if course:
+        db.session.delete(course)
+        db.session.commit()
+        return jsonify({"message": "Course deleted successfully"})
+    return jsonify({"message": "Course not found"})
+
+@app.route('/admin/manage_courses', methods=['GET'])
+def get_courses():
+    courses = Course.query.all()
+    return jsonify([{"course_code": course.course_code, "title": course.title} for course in courses])
+
+@app.route('/admin/manage_degree_plans', methods=['GET'])
 def manage_degree_plans():
-    # Logic to manage degree plans
-    return jsonify({"degree_plans": ["Plan 1", "Plan 2"]})
+    degree_plans = DegreePlan.query.all()
+    plans_data = [
+        {
+            "id": plan.id,
+            "student_id": plan.student_id,
+            "course_code": plan.course_code,
+            "approved": plan.approved
+        } 
+        for plan in degree_plans
+    ]
+    return jsonify(plans_data)
 
-@app.route('/admin/manage_schedules', methods=['GET', 'POST'])
-def manage_schedules():
-    # Logic to manage schedules
-    return jsonify({"schedules": ["Schedule 1", "Schedule 2"]})
+@app.route('/admin/add_degree_plan', methods=['POST'])
+def add_degree_plan():
+    student_id = request.form['student_id']
+    course_code = request.form['course_code']
+    new_plan = DegreePlan(student_id=student_id, course_code=course_code)
+    db.session.add(new_plan)
+    db.session.commit()
+    return jsonify({"message": "Degree plan added successfully"})
+
+@app.route('/admin/get_degree_plan/<int:plan_id>', methods=['GET'])
+def get_degree_plan(plan_id):
+    plan = DegreePlan.query.get(plan_id)
+    if plan:
+        return jsonify({
+            "id": plan.id,
+            "student_id": plan.student_id,
+            "course_code": plan.course_code,
+            "approved": plan.approved
+        })
+    return jsonify({"message": "Degree plan not found"}), 404
+
+@app.route('/admin/edit_degree_plan', methods=['POST'])
+def edit_degree_plan():
+    plan_id = request.form['plan_id']
+    student_id = request.form['student_id']
+    course_code = request.form['course_code']
+    approved = 'approved' in request.form
+
+    plan = DegreePlan.query.get(plan_id)
+    if plan:
+        plan.student_id = student_id
+        plan.course_code = course_code
+        plan.approved = approved
+        db.session.commit()
+        return jsonify({"message": "Degree plan updated successfully"})
+    return jsonify({"message": "Degree plan not found"}), 404
+
+@app.route('/admin/delete_degree_plan/<int:plan_id>', methods=['DELETE'])
+def delete_degree_plan(plan_id):
+    plan = DegreePlan.query.get(plan_id)
+    if plan:
+        db.session.delete(plan)
+        db.session.commit()
+        return jsonify({"message": "Degree plan deleted successfully"})
+    return jsonify({"message": "Degree plan not found"}), 404
+
+#@app.route('/admin/manage_degree_plans', methods=['GET'])
+#def manage_degree_plans():
+#    degree_plans = DegreePlan.query.all()
+#    return jsonify([{"id": plan.id, "student_id": plan.student_id, "course_id": plan.course_id, "approved": plan.approved} for plan in degree_plans])
 
 @app.route('/admin/view_logs', methods=['GET'])
 def view_logs():
     # Logic to view change logs
     return jsonify({"logs": ["Log 1", "Log 2"]})
+
+@app.route('/admin/get_section/<int:id>', methods=['GET'])
+def get_section(id):
+    section = Section.query.get(id)
+    if not section:
+        return jsonify({"message": "Section not found"}), 404
+
+    section_data = {
+        "id": section.id,
+        "course_code": section.course_code,
+        "semester": section.semester,
+        "meeting_time": section.meeting_time,
+        "location": section.location,
+        "instructor": section.instructor,
+        "capacity": section.capacity,
+        "current_enrollment": section.current_enrollment
+    }
+
+    return jsonify(section_data)
+
+@app.route('/admin/edit_section/<int:id>', methods=['POST'])
+def edit_section(id):
+    section = Section.query.get(id)
+    if not section:
+        return jsonify({"message": "Section not found"}), 404
+
+    section.section_name = request.form.get('section_name', section.section_name)
+    section.course_code = request.form.get('course_code', section.course_code)
+    section.semester = request.form.get('semester', section.semester)
+    section.meeting_time = request.form.get('meeting_time', section.meeting_time)
+    section.location = request.form.get('location', section.location)
+    section.instructor = request.form.get('instructor', section.instructor)
+    section.capacity = request.form.get('capacity', section.capacity, type=int)
+
+    # Optionally, add validation for course_code or other fields if needed
+
+    db.session.commit()
+    return jsonify({"message": "Section updated successfully"})
+
+@app.route('/admin/add_section', methods=['POST'])
+def add_section():
+    section_name = request.form.get('section_name')
+    course_code = request.form.get('course_code')
+    semester = request.form.get('semester')
+    meeting_time = request.form.get('meeting_time')
+    location = request.form.get('location')
+    instructor = request.form.get('instructor')
+    capacity = request.form.get('capacity', 15, type=int)
+
+    # Check if section_name already exists
+    if Section.query.filter_by(section_name=section_name).first():
+        return jsonify({"message": "Section name already exists"}), 400
+
+    # Check if course with the given course_code exists
+    course_exists = Course.query.filter_by(course_code=course_code).first()
+    if not course_exists:
+        return jsonify({"message": "Course code not found"}), 404
+
+    new_section = Section(
+        section_name=section_name,
+        course_code=course_code,
+        semester=semester,
+        meeting_time=meeting_time,
+        location=location,
+        instructor=instructor,
+        capacity=capacity
+    )
+
+    db.session.add(new_section)
+    db.session.commit()
+    return jsonify({"message": "Section added successfully"})
+
+@app.route('/admin/delete_section/<int:id>', methods=['DELETE'])
+def delete_section(id):
+    section = Section.query.get(id)
+    if not section:
+        return jsonify({"message": "Section not found"}), 404
+
+    db.session.delete(section)
+    db.session.commit()
+    return jsonify({"message": "Section deleted successfully"})
+
+@app.route('/admin/get_sections', methods=['GET'])
+def get_sections():
+    sections = Section.query.all()
+    sections_data = [
+        {
+            "id": section.id,
+            "section_name": section.section_name,
+            "course_code": section.course_code,
+            "semester": section.semester,
+            "meeting_time": section.meeting_time,
+            "location": section.location,
+            "instructor": section.instructor,
+            "capacity": section.capacity,
+            "current_enrollment": section.current_enrollment
+        } for section in sections
+    ]
+
+    return jsonify(sections_data)
+
 
 # Run the application
 if __name__ == '__main__':
