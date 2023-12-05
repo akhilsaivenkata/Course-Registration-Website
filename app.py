@@ -210,36 +210,6 @@ def view_degree_plan():
 #    # Save the degree_plan to the database
 #    return jsonify({"success": True, "message": "Degree plan submitted"})
 
-@app.route('/enroll_in_section', methods=['POST'])
-def enroll_in_section():
-    student_id = request.form.get('student_id')
-    course_id = request.form.get('course_id')
-    semester = request.form.get('semester')
-
-    # Find or create a section
-    #section = Section.query.filter_by(course_id=course_id, semester=semester, current_enrollment < Section.capacity).first()
-    section = Section.query.filter(
-    Section.course_id == course_id,
-    Section.semester == semester,
-    Section.current_enrollment < Section.capacity).first()
-    if not section:
-        section_number = generate_new_section_number(course_id, semester)
-        section = Section(course_id=course_id, semester=semester, section_number=section_number)
-        db.session.add(section)
-        db.session.commit()
-
-    # Check if student is already enrolled
-    existing_enrollment = Enrollment.query.filter_by(student_id=student_id, section_id=section.id).first()
-    if existing_enrollment:
-        return jsonify({"success": False, "message": "Already enrolled in this course section."})
-
-    # Enroll the student
-    enrollment = Enrollment(student_id=student_id, section_id=section.id)
-    db.session.add(enrollment)
-    section.current_enrollment += 1
-    db.session.commit()
-
-    return jsonify({"success": True, "message": f"Enrolled in section {section.section_number}."})
 
 def generate_new_section_number(course_id, semester):
     last_section = Section.query.filter_by(course_id=course_id, semester=semester).order_by(Section.section_number.desc()).first()
@@ -326,6 +296,139 @@ def view_semester_schedule():
     ]
 
     return jsonify(sections_data)
+'''
+@app.route('/student/select_sections', methods=['GET'])
+def select_sections():
+    if 'username' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    # Get approved degree plans for the student
+    approved_plans = DegreePlan.query.filter_by(student_id=student.id, approved=True).all()
+    approved_course_codes = [plan.course_code for plan in approved_plans]
+
+    # Get sections for the approved courses
+    available_sections = Section.query.filter(Section.course_code.in_(approved_course_codes)).all()
+
+    # Convert sections to a dictionary
+    sections_data = [
+        {
+            "id": section.id,
+            "section_name": section.section_name,
+            "course_code": section.course_code,
+            "semester": section.semester,
+            "meeting_time": section.meeting_time,
+            "location": section.location,
+            "instructor": section.instructor,
+            "capacity": section.capacity,
+            "current_enrollment": section.current_enrollment
+        } for section in available_sections
+    ]
+
+    return jsonify(sections_data)
+'''
+
+@app.route('/student/select_sections', methods=['GET'])
+def select_sections():
+    if 'username' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    # Get approved degree plans for the student
+    approved_plans = DegreePlan.query.filter_by(student_id=student.id, approved=True).all()
+    approved_course_codes = [plan.course_code for plan in approved_plans]
+
+    # Get sections for the approved courses
+    all_sections = Section.query.filter(Section.course_code.in_(approved_course_codes)).all()
+
+    # Filter out sections where the student is already enrolled
+    available_sections = []
+    for section in all_sections:
+        existing_enrollment = Enrollment.query.filter_by(student_id=student.id, section_id=section.id).first()
+        if not existing_enrollment:
+            available_sections.append(section)
+
+    # Convert sections to a dictionary
+    sections_data = [
+        {
+            "id": section.id,
+            "section_name": section.section_name,
+            "course_code": section.course_code,
+            "semester": section.semester,
+            "meeting_time": section.meeting_time,
+            "location": section.location,
+            "instructor": section.instructor,
+            "capacity": section.capacity,
+            "current_enrollment": section.current_enrollment
+        } for section in available_sections
+    ]
+
+    return jsonify(sections_data)
+
+@app.route('/student/enroll_in_section', methods=['POST'])
+def enroll_in_section():
+    if 'username' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    section_id = request.json.get('section_id')
+
+    # Check if the section exists and has capacity
+    section = Section.query.get(section_id)
+    if not section or section.current_enrollment >= section.capacity:
+        return jsonify({"message": "Section not found or full"}), 400
+
+    # Check if student is already enrolled
+    if Enrollment.query.filter_by(student_id=student.id, section_id=section_id).first():
+        return jsonify({"message": "Already enrolled"}), 400
+
+    # Enroll the student
+    new_enrollment = Enrollment(student_id=student.id, section_id=section_id)
+    db.session.add(new_enrollment)
+
+    # Increment current enrollment
+    section.current_enrollment += 1
+    db.session.commit()
+
+    return jsonify({"message": "Enrollment successful"})
+
+@app.route('/student/view_enrollments', methods=['GET'])
+def view_enrollments():
+    if 'username' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    # Fetch enrollments for the student
+    enrollments = Enrollment.query.filter_by(student_id=student.id).all()
+
+    # Join with the Section table to get detailed information
+    enrollments_data = []
+    for enrollment in enrollments:
+        section = Section.query.get(enrollment.section_id)
+        if section:
+            enrollments_data.append({
+                "id": section.id,
+                "section_name": section.section_name,
+                "course_code": section.course_code,
+                "semester": section.semester,
+                "meeting_time": section.meeting_time,
+                "location": section.location,
+                "instructor": section.instructor
+            })
+
+    return jsonify(enrollments_data)
 
 # Advisor Routes
 @app.route('/advisor/')

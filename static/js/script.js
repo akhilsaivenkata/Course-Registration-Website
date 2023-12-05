@@ -281,9 +281,176 @@ document.getElementById('view-schedule-btn').addEventListener('click', function(
     //loadContent('View Semester Schedule');
 });
 */
+
+/*
 document.getElementById('select-section-btn').addEventListener('click', function() {
-    //loadContent('Select Course Sections');
+    const contentArea = document.getElementById('content-area');
+    
+    fetch('/student/select_sections')
+        .then(response => response.json())
+        .then(sections => {
+            contentArea.innerHTML = '';  // Clear the content area
+            if (sections.length === 0) {
+                contentArea.innerHTML = '<p>No sections available for enrollment.</p>';
+                return;
+            }
+
+            // Create and populate the table with available sections
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <tr>
+                    <th>Section Name</th>
+                    <th>Course Code</th>
+                    <th>Semester</th>
+                    <th>Meeting Time</th>
+                    <th>Location</th>
+                    <th>Instructor</th>
+                    <th>Capacity</th>
+                    <th>Current Enrollment</th>
+                    <th>Action</th>
+                </tr>
+            `;
+            sections.forEach(section => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${section.section_name}</td>
+                    <td>${section.course_code}</td>
+                    <td>${section.semester}</td>
+                    <td>${section.meeting_time}</td>
+                    <td>${section.location}</td>
+                    <td>${section.instructor}</td>
+                    <td>${section.capacity}</td>
+                    <td>${section.current_enrollment}</td>
+                    <td><button onclick="enrollInSection(${section.id})">Enroll</button></td>
+                `;
+                table.appendChild(row);
+            });
+
+            contentArea.appendChild(table);
+        })
+        .catch(error => {
+            console.error('Error fetching available sections:', error);
+            contentArea.innerHTML = '<p>Error loading sections.</p>';
+        });
+});*/
+
+
+document.getElementById('select-section-btn').addEventListener('click', function() {
+    const contentArea = document.getElementById('content-area');
+    
+    // Load existing enrollments
+    loadExistingEnrollments();
+
+    // Fetch and display available sections for enrollment
+    fetch('/student/select_sections')
+        .then(response => response.json())
+        .then(sections => {
+            contentArea.innerHTML += '<hr>';  // Separator between existing enrollments and available sections
+            if (sections.length === 0) {
+                contentArea.innerHTML += '<p>No sections available for enrollment.</p>';
+                return;
+            }
+
+            // Create and populate the table with available sections
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <tr>
+                    <th>Section Name</th>
+                    <th>Course Code</th>
+                    <th>Semester</th>
+                    <th>Meeting Time</th>
+                    <th>Location</th>
+                    <th>Instructor</th>
+                    <th>Capacity</th>
+                    <th>Current Enrollment</th>
+                    <th>Action</th>
+                </tr>
+            `;
+            sections.forEach(section => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${section.section_name}</td>
+                    <td>${section.course_code}</td>
+                    <td>${section.semester}</td>
+                    <td>${section.meeting_time}</td>
+                    <td>${section.location}</td>
+                    <td>${section.instructor}</td>
+                    <td>${section.capacity}</td>
+                    <td>${section.current_enrollment}</td>
+                    <td><button onclick="enrollInSection(${section.id})">Enroll</button></td>
+                `;
+                table.appendChild(row);
+            });
+
+            contentArea.appendChild(table);
+        })
+        .catch(error => {
+            console.error('Error fetching available sections:', error);
+            contentArea.innerHTML += '<p>Error loading sections.</p>';
+        });
 });
+
+function loadExistingEnrollments() {
+    fetch('/student/view_enrollments')
+        .then(response => response.json())
+        .then(enrollments => {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = '<h3>Your Existing Enrollments</h3>';  // Heading for existing enrollments
+
+            if (enrollments.length === 0) {
+                contentArea.innerHTML += '<p>No existing enrollments found.</p>';
+                return;
+            }
+
+            // Create and populate the table with existing enrollments
+            const enrollmentTable = document.createElement('table');
+            enrollmentTable.innerHTML = `
+                <tr>
+                    <th>Section Name</th>
+                    <th>Course Code</th>
+                    <th>Semester</th>
+                    <th>Meeting Time</th>
+                    <th>Location</th>
+                    <th>Instructor</th>
+                </tr>
+            `;
+            enrollments.forEach(enrollment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${enrollment.section_name}</td>
+                    <td>${enrollment.course_code}</td>
+                    <td>${enrollment.semester}</td>
+                    <td>${enrollment.meeting_time}</td>
+                    <td>${enrollment.location}</td>
+                    <td>${enrollment.instructor}</td>
+                `;
+                enrollmentTable.appendChild(row);
+            });
+
+            contentArea.appendChild(enrollmentTable);
+        })
+        .catch(error => {
+            console.error('Error fetching existing enrollments:', error);
+            contentArea.innerHTML += '<p>Error loading existing enrollments.</p>';
+        });
+}
+
+
+function enrollInSection(sectionId) {
+    fetch('/student/enroll_in_section', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ section_id: sectionId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        // Optionally, refresh the section list or update the UI
+    })
+    .catch(error => console.error('Error enrolling in section:', error));
+}
 
 function loadContent(content) {
     document.getElementById('content-area').textContent = content + ' content loading...';
