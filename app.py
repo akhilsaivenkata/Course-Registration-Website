@@ -333,19 +333,59 @@ def advisor_index():
     return render_template('advisorInterface.html')
 
 # Routes for the advisor interface
-@app.route('/advisor/review_plans', methods=['GET'])
-def review_plans():
-    # Placeholder for fetching degree plans for review
-    # plans = DegreePlan.query.all()
-    # return jsonify([plan.to_dict() for plan in plans])
-    return jsonify({"degree_plans": ["Plan 1", "Plan 2"]})
+@app.route('/advisor/view_change_requests', methods=['GET'])
+def view_change_requests():
+    change_requests = ChangeRequest.query.all()
+    requests_data = [request.to_dict() for request in change_requests]
+    return jsonify(requests_data)
 
-@app.route('/advisor/finalize_plan', methods=['POST'])
-def finalize_plan():
-    # Placeholder for updating the degree plan status in the database
-    # degree_plan_id = request.json.get('plan_id')
-    # Update the degree plan status to 'finalized'
-    return jsonify({"success": True, "message": "Degree plan finalized"})
+
+@app.route('/advisor/edit_request', methods=['POST'])
+def edit_request():
+    # Assuming you have authentication and authorization set up
+    # Ensure the user is authorized to perform this action
+
+    request_id = request.form.get('request_id')
+    requested_changes = request.form.get('requested_changes')
+    status = request.form.get('status')
+
+    # Validate input data as necessary
+
+    # Find the request in the database
+    change_request = ChangeRequest.query.get(request_id)
+    if not change_request:
+        return jsonify({"message": "Change request not found"}), 404
+
+    # Update the request
+    change_request.requested_changes = requested_changes
+    change_request.status = status
+
+    # Save changes to the database
+    db.session.commit()
+
+    return jsonify({"message": "Change request updated successfully"})
+
+@app.route('/advisor/get_request/<int:request_id>', methods=['GET'])
+def get_request(request_id):
+    # Assuming you have authentication and authorization set up
+    # Ensure the user is authorized to perform this action
+
+    # Find the request in the database
+    change_request = ChangeRequest.query.get(request_id)
+    if not change_request:
+        return jsonify({"message": "Change request not found"}), 404
+
+    # Convert the request to a dictionary (or similar structure)
+    request_data = {
+        "id": change_request.id,
+        "student_id": change_request.student_id,
+        "degree_plan_id": change_request.degree_plan_id,
+        "requested_changes": change_request.requested_changes,
+        "status": change_request.status,
+        "timestamp": change_request.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    return jsonify(request_data)
 
 @app.route('/advisor/add_degree_plan', methods=['POST'])
 def add_degree_plan_advisor():

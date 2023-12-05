@@ -119,6 +119,67 @@ function editDegreePlan(planId) {
 
 
 
+document.getElementById('change-requests-btn').addEventListener('click', function() {
+    const contentArea = document.getElementById('content-area');
+
+    // Load existing requests
+    loadRequests();
+
+    function loadRequests() {
+        fetch('/advisor/view_change_requests')
+            .then(response => response.json())
+            .then(requests => {
+                const list = document.createElement('ul');
+                requests.forEach(request => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `
+                        Request ID: ${request.id}, Student ID: ${request.student_id}, Degree Plan ID: ${request.degree_plan_id}, Requested Changes: ${request.requested_changes}, Status: ${request.status}
+                        <button onclick="editRequest(${request.id})">Edit</button>
+                    `;
+                    list.appendChild(listItem);
+                });
+                contentArea.innerHTML = '';
+                contentArea.appendChild(list);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+});
+
+
+
+function editRequest(requestId) {
+    fetch(`/advisor/get_request/${requestId}`)
+        .then(response => response.json())
+        .then(requestData => {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = `
+                <h2>Edit Request</h2>
+                <form id="edit-request-form">
+                    <input type="hidden" name="request_id" value="${requestId}">
+                    <textarea name="requested_changes" placeholder="Requested Changes">${requestData.requested_changes}</textarea>
+                    <select name="status">
+                        <option value="pending" ${requestData.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="approved" ${requestData.status === 'approved' ? 'selected' : ''}>Approved</option>
+                        <option value="denied" ${requestData.status === 'denied' ? 'selected' : ''}>Denied</option>
+                    </select>
+                    <button type="submit">Update Request</button>
+                </form>
+            `;
+
+            document.getElementById('edit-request-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                fetch('/advisor/edit_request', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json()).then(data => {
+                    alert(data.message);
+                    loadRequests();  // Reload the requests list
+                });
+            });
+        });
+}
+
 function loadContent(content) {
     document.getElementById('content-area').textContent = content + ' content loading...';
     // Here you would typically make an AJAX call to the server to load the content.
