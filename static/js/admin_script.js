@@ -317,6 +317,56 @@ function loadSections() {
             const sectionsList = document.getElementById('sections-list');
             sectionsList.innerHTML = ''; // Clear existing content
 
+            // Create a table element
+            const table = document.createElement('table');
+
+            // Add table headers
+            table.innerHTML = `
+                <tr>
+                    <th>Section Name</th>
+                    <th>Course Code</th>
+                    <th>Semester</th>
+                    <th>Meeting Time</th>
+                    <th>Location</th>
+                    <th>Instructor</th>
+                    <th>Capacity</th>
+                    <th>Current Enrollment</th>
+                    <th>Actions</th>
+                </tr>
+            `;
+
+            // Add each section as a row in the table
+            sections.forEach(section => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${section.section_name}</td>
+                    <td>${section.course_code}</td>
+                    <td>${section.semester}</td>
+                    <td>${section.meeting_time}</td>
+                    <td>${section.location}</td>
+                    <td>${section.instructor}</td>
+                    <td>${section.capacity}</td>
+                    <td>${section.current_enrollment}</td>
+                    <td>
+                        <button onclick="editSection(${section.id})">Edit</button>
+                        <button onclick="deleteSection(${section.id})">Delete</button>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+
+            sectionsList.appendChild(table);
+        });
+}
+
+/*
+function loadSections() {
+    fetch('/admin/get_sections')
+        .then(response => response.json())
+        .then(sections => {
+            const sectionsList = document.getElementById('sections-list');
+            sectionsList.innerHTML = ''; // Clear existing content
+
             sections.forEach(section => {
                 sectionsList.innerHTML += `
                     <div id="section-${section.id}">
@@ -334,7 +384,7 @@ function loadSections() {
                 `;
             });
         });
-}
+}*/
 
 
 function editSection(sectionId) {
