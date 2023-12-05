@@ -10,13 +10,13 @@
     });
 });*/
 
-document.getElementById('change-requests-btn').addEventListener('click', function() {
+/*document.getElementById('change-requests-btn').addEventListener('click', function() {
     loadContent('View Change Requests');
-});
+});*/
 
-document.getElementById('schedule-management-btn').addEventListener('click', function() {
+/*document.getElementById('schedule-management-btn').addEventListener('click', function() {
     loadContent('Manage Schedules');
-});
+});*/
 
 
 
@@ -179,6 +179,57 @@ function editRequest(requestId) {
             });
         });
 }
+
+
+document.getElementById('section-management-btn').addEventListener('click', function() {
+    const contentArea = document.getElementById('content-area');
+    
+    fetch('/advisor/view_all_enrollments')
+        .then(response => response.json())
+        .then(enrollments => {
+            contentArea.innerHTML = '';  // Clear the content area
+            if (enrollments.length === 0) {
+                contentArea.innerHTML = '<p>No enrollments found.</p>';
+                return;
+            }
+
+            // Create and populate the table with enrollments
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <tr>
+                    <th>Enrollment ID</th>
+                    <th>Student ID</th>
+                    <th>Section Name</th>
+                    <th>Course Code</th>
+                    <th>Action</th>
+                </tr>
+            `;
+            enrollments.forEach(enrollment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${enrollment.id}</td>
+                    <td>${enrollment.student_id}</td>
+                    <td>${enrollment.section_name}</td>
+                    <td>${enrollment.course_code}</td>
+                    <td><button onclick="removeEnrollment(${enrollment.id})">Remove</button></td>
+                `;
+                table.appendChild(row);
+            });
+
+            contentArea.appendChild(table);
+        })
+        .catch(error => {
+            console.error('Error fetching enrollments:', error);
+            contentArea.innerHTML = '<p>Error loading enrollments.</p>';
+        });
+});
+
+// Placeholder function for removing an enrollment
+function removeEnrollment(enrollmentId) {
+    console.log(`Remove enrollment: ${enrollmentId}`);
+    // Implement the logic for removing an enrollment
+}
+
 
 function loadContent(content) {
     document.getElementById('content-area').textContent = content + ' content loading...';

@@ -435,6 +435,26 @@ def view_enrollments():
 def advisor_index():
     return render_template('advisorInterface.html')
 
+@app.route('/advisor/view_all_enrollments', methods=['GET'])
+def view_all_enrollments():
+    enrollments = db.session.query(
+        Enrollment.id,
+        Enrollment.student_id,
+        Section.section_name,
+        Section.course_code
+    ).join(Section, Enrollment.section_id == Section.id).all()
+
+    enrollments_data = [
+        {
+            "id": enrollment.id,
+            "student_id": enrollment.student_id,
+            "section_name": enrollment.section_name,
+            "course_code": enrollment.course_code
+        } for enrollment in enrollments
+    ]
+
+    return jsonify(enrollments_data)
+
 # Routes for the advisor interface
 @app.route('/advisor/view_change_requests', methods=['GET'])
 def view_change_requests():
