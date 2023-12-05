@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session,flash
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -79,6 +80,36 @@ class Enrollment(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)
 
+class UserActionLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    action = db.Column(db.String(500), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "action": self.action
+        }
+
+
+class ChangeRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    degree_plan_id = db.Column(db.Integer, db.ForeignKey('degree_plan.id'), nullable=False)
+    requested_changes = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), default='pending')  # e.g., 'pending', 'approved', 'denied'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "student_id": self.student_id,
+            "degree_plan_id": self.degree_plan_id,
+            "requested_changes": self.requested_changes,
+            "status": self.status,
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        }
 ##class Schedule(db.Model):
 #    id = db.Column(db.Integer, primary_key=True)
 ##    section_id = db.Column(db.Integer, db.ForeignKey('section.id'), nullable=False)
@@ -172,12 +203,12 @@ def view_degree_plan():
     return jsonify(plan_data)
     #return jsonify({"courses": ["Course 1", "Course 2", "Course 3"]})
 
-@app.route('/submit_degree_plan', methods=['POST'])
-def submit_degree_plan():
-    # Placeholder for saving data to the database
-    # degree_plan = request.json
-    # Save the degree_plan to the database
-    return jsonify({"success": True, "message": "Degree plan submitted"})
+#@app.route('/submit_degree_plan', methods=['POST'])
+#def submit_degree_plan():
+#    # Placeholder for saving data to the database
+#    # degree_plan = request.json
+#    # Save the degree_plan to the database
+#    return jsonify({"success": True, "message": "Degree plan submitted"})
 
 @app.route('/enroll_in_section', methods=['POST'])
 def enroll_in_section():
@@ -216,7 +247,86 @@ def generate_new_section_number(course_id, semester):
         return str(int(last_section.section_number) + 1)
     else:
         return "1"
+
+@app.route('/student/add_degree_plan', methods=['POST'])
+def add_degree_plan_student():
+    student_id = request.form['student_id']
+    course_code = request.form['course_code']
+    new_plan = DegreePlan(student_id=student_id, course_code=course_code)
+    db.session.add(new_plan)
+    db.session.commit()
+    log_action("Added a degree plan by Student with id: "+str(student_id))
+    return jsonify({"message": "Degree plan added successfully"})
     
+
+@app.route('/student/submit_change_request', methods=['POST'])
+def submit_change_request():
+    print("Received POST request for /submit_change_request")
+    if 'username' not in session:
+        return jsonify({"message": "Not logged in"}), 401
+
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+
+    # Extract the degree plan ID and requested changes from the request
+    degree_plan_id = request.json.get('degree_plan_id')
+    requested_changes = request.json.get('requested_changes')
+
+    if not degree_plan_id or not requested_changes:
+        return jsonify({"message": "Degree plan ID and requested changes are required"}), 400
+
+    # Create a new change request record
+    change_request = ChangeRequest(
+        student_id=student.id,
+        degree_plan_id=degree_plan_id,
+        requested_changes=requested_changes
+    )
+    db.session.add(change_request)
+    db.session.commit()
+    log_action("Change request for degree plan id: "+str(degree_plan_id)+" by a student")
+    return jsonify({"message": "Change request submitted successfully", "id": change_request.id})
+
+
+@app.route('/student/view_requests', methods=['GET'])
+def view_student_requests():
+    if 'username' not in session:
+        return jsonify({"message": "User not logged in"}), 401
+    
+    student = User.query.filter_by(username=session['username']).first()
+    if not student:
+        return jsonify({"message": "Student not found"}), 404
+    
+    requests = ChangeRequest.query.filter_by(student_id=student.id).all()
+    return jsonify([r.to_dict() for r in requests])
+
+
+@app.route('/student/view_semester_schedule', methods=['GET'])
+def view_semester_schedule():
+    if 'username' not in session:
+        return jsonify({"message": "User not logged in"}), 401
+    
+    # Optionally, filter by the current semester
+    # current_semester = 'Spring 2023' # Example, you can determine this dynamically
+    # sections = Section.query.filter_by(semester=current_semester).all()
+    
+    sections = Section.query.all()
+    sections_data = [
+        {
+            "id": section.id,
+            "section_name": section.section_name,
+            "course_code": section.course_code,
+            "semester": section.semester,
+            "meeting_time": section.meeting_time,
+            "location": section.location,
+            "instructor": section.instructor,
+            "capacity": section.capacity,
+            "current_enrollment": section.current_enrollment
+        } for section in sections
+    ]
+
+    return jsonify(sections_data)
+
 # Advisor Routes
 @app.route('/advisor/')
 def advisor_index():
@@ -236,6 +346,43 @@ def finalize_plan():
     # degree_plan_id = request.json.get('plan_id')
     # Update the degree plan status to 'finalized'
     return jsonify({"success": True, "message": "Degree plan finalized"})
+
+@app.route('/advisor/add_degree_plan', methods=['POST'])
+def add_degree_plan_advisor():
+    student_id = request.form['student_id']
+    course_code = request.form['course_code']
+    new_plan = DegreePlan(student_id=student_id, course_code=course_code)
+    db.session.add(new_plan)
+    db.session.commit()
+    log_action("Added a degree plan of a student with id: "+str(student_id)+" by advisor")
+    return jsonify({"message": "Degree plan added successfully"})
+
+@app.route('/advisor/edit_degree_plan', methods=['POST'])
+def edit_degree_plan_advisor():
+    plan_id = request.form['plan_id']
+    student_id = request.form['student_id']
+    course_code = request.form['course_code']
+    approved = 'approved' in request.form
+
+    plan = DegreePlan.query.get(plan_id)
+    if plan:
+        plan.student_id = student_id
+        plan.course_code = course_code
+        plan.approved = approved
+        db.session.commit()
+        log_action("Edited a degree plan of a student with id "+str(plan.student_id)+" by advisor")
+        return jsonify({"message": "Degree plan updated successfully"})
+    return jsonify({"message": "Degree plan not found"}), 404
+
+@app.route('/advisor/delete_degree_plan/<int:plan_id>', methods=['DELETE'])
+def delete_degree_plan_advisor(plan_id):
+    plan = DegreePlan.query.get(plan_id)
+    if plan:
+        db.session.delete(plan)
+        db.session.commit()
+        log_action("Deleted a degree plan by advisor")
+        return jsonify({"message": "Degree plan deleted successfully"})
+    return jsonify({"message": "Degree plan not found"}), 404
 
 # Admin Routes
 @app.route('/admin/')
@@ -263,6 +410,7 @@ def add_user():
     new_user = User(username=username, email=email, password_hash=password_hash, role=role)
     db.session.add(new_user)
     db.session.commit()
+    log_action("Added a user with name: "+username+" by admin")
     return jsonify({"message": "User added successfully"})
 
 @app.route('/admin/manage_users/delete', methods=['POST'])
@@ -272,6 +420,7 @@ def delete_user():
     if user:
         db.session.delete(user)
         db.session.commit()
+        log_action("Deleted an user with username: "+username+" by admin")
         return jsonify({"message": "User deleted successfully"})
     return jsonify({"message": "User not found"})
 
@@ -286,6 +435,7 @@ def add_course():
     new_course = Course(course_code=course_code, title=title, description=description, is_core=is_core)
     db.session.add(new_course)
     db.session.commit()
+    log_action("Added a course with code: "+course_code+" by admin")
     return jsonify({"message": "Course added successfully"})
 
 # Admin: Manage Courses - Delete a Course
@@ -296,6 +446,7 @@ def delete_course():
     if course:
         db.session.delete(course)
         db.session.commit()
+        log_action("Deleted Course with code: "+course_code+" by admin")
         return jsonify({"message": "Course deleted successfully"})
     return jsonify({"message": "Course not found"})
 
@@ -325,6 +476,7 @@ def add_degree_plan():
     new_plan = DegreePlan(student_id=student_id, course_code=course_code)
     db.session.add(new_plan)
     db.session.commit()
+    log_action("Added a degree plan of a student with id: "+str(student_id)+" by admin")
     return jsonify({"message": "Degree plan added successfully"})
 
 @app.route('/admin/get_degree_plan/<int:plan_id>', methods=['GET'])
@@ -352,6 +504,7 @@ def edit_degree_plan():
         plan.course_code = course_code
         plan.approved = approved
         db.session.commit()
+        log_action("Edited a degree plan of a student with id "+str(plan.student_id)+" by admin")
         return jsonify({"message": "Degree plan updated successfully"})
     return jsonify({"message": "Degree plan not found"}), 404
 
@@ -361,6 +514,7 @@ def delete_degree_plan(plan_id):
     if plan:
         db.session.delete(plan)
         db.session.commit()
+        log_action("Deleted a degree plan by admin")
         return jsonify({"message": "Degree plan deleted successfully"})
     return jsonify({"message": "Degree plan not found"}), 404
 
@@ -369,10 +523,15 @@ def delete_degree_plan(plan_id):
 #    degree_plans = DegreePlan.query.all()
 #    return jsonify([{"id": plan.id, "student_id": plan.student_id, "course_id": plan.course_id, "approved": plan.approved} for plan in degree_plans])
 
+def log_action(action):
+    log_entry = UserActionLog(action=action)
+    db.session.add(log_entry)
+    db.session.commit()
+
 @app.route('/admin/view_logs', methods=['GET'])
 def view_logs():
-    # Logic to view change logs
-    return jsonify({"logs": ["Log 1", "Log 2"]})
+    logs = UserActionLog.query.order_by(UserActionLog.timestamp.desc()).all()
+    return jsonify([log.to_dict() for log in logs])
 
 @app.route('/admin/get_section/<int:id>', methods=['GET'])
 def get_section(id):
@@ -410,6 +569,7 @@ def edit_section(id):
     # Optionally, add validation for course_code or other fields if needed
 
     db.session.commit()
+    log_action("Edited "+section.course_code+" section by admin")
     return jsonify({"message": "Section updated successfully"})
 
 @app.route('/admin/add_section', methods=['POST'])
@@ -443,6 +603,7 @@ def add_section():
 
     db.session.add(new_section)
     db.session.commit()
+    log_action("Added "+section_name+" section by admin")
     return jsonify({"message": "Section added successfully"})
 
 @app.route('/admin/delete_section/<int:id>', methods=['DELETE'])
@@ -453,6 +614,7 @@ def delete_section(id):
 
     db.session.delete(section)
     db.session.commit()
+    log_action("Deleted a section by admin")
     return jsonify({"message": "Section deleted successfully"})
 
 @app.route('/admin/get_sections', methods=['GET'])

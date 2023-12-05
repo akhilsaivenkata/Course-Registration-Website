@@ -1,8 +1,45 @@
 document.getElementById('view-logs-btn').addEventListener('click', function() {
-    fetch('/admin/view_logs').then(response => response.json()).then(data => {
-        document.getElementById('content-area').textContent = JSON.stringify(data);
-    });
+    fetch('/admin/view_logs')
+        .then(response => response.json())
+        .then(logs => {
+            const contentArea = document.getElementById('content-area');
+            // Clear previous content
+            contentArea.innerHTML = '';
+
+            // Check if logs are available
+            if (logs.length === 0) {
+                contentArea.innerHTML = '<p>No logs available.</p>';
+                return;
+            }
+
+            // Create a table for the logs
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                </tr>
+            `;
+
+            // Populate the table with logs
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${log.timestamp}</td>
+                    <td>${log.action}</td>
+                `;
+                table.appendChild(row);
+            });
+
+            // Append the table to the content area
+            contentArea.appendChild(table);
+        })
+        .catch(error => {
+            console.error('Error fetching logs:', error);
+            document.getElementById('content-area').innerHTML = '<p>Error loading logs.</p>';
+        });
 });
+
 
 function loadContent(content) {
     document.getElementById('content-area').textContent = content + ' content loading...';
