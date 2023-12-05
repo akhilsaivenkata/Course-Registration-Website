@@ -1,26 +1,3 @@
-/*document.getElementById('review-plans-btn').addEventListener('click', function() {
-    fetch('/advisor/review_plans').then(response => response.json()).then(data => {
-        document.getElementById('content-area').textContent = JSON.stringify(data);
-    });
-});*/
-
-/*document.getElementById('finalize-plans-btn').addEventListener('click', function() {
-    fetch('/advisor/finalize_plan').then(response => response.json()).then(data => {
-        document.getElementById('content-area').textContent = JSON.stringify(data);
-    });
-});*/
-
-/*document.getElementById('change-requests-btn').addEventListener('click', function() {
-    loadContent('View Change Requests');
-});*/
-
-/*document.getElementById('schedule-management-btn').addEventListener('click', function() {
-    loadContent('Manage Schedules');
-});*/
-
-
-
-
 document.getElementById('finalize-plans-btn').addEventListener('click', function() {
     const contentArea = document.getElementById('content-area');
 
@@ -226,8 +203,19 @@ document.getElementById('section-management-btn').addEventListener('click', func
 
 // Placeholder function for removing an enrollment
 function removeEnrollment(enrollmentId) {
-    console.log(`Remove enrollment: ${enrollmentId}`);
-    // Implement the logic for removing an enrollment
+    if(confirm(`Are you sure you want to remove enrollment ID: ${enrollmentId}?`)) {
+        fetch(`/advisor/remove_enrollment/${enrollmentId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                // Optionally, refresh the enrollments list
+                document.getElementById('section-management-btn').click();
+            })
+            .catch(error => {
+                console.error('Error removing enrollment:', error);
+                alert('Error removing enrollment.');
+            });
+    }
 }
 
 

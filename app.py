@@ -398,7 +398,7 @@ def enroll_in_section():
     # Increment current enrollment
     section.current_enrollment += 1
     db.session.commit()
-
+    log_action("Added an enrollment into a section with id: "+str(section_id)+" by "+student.id)
     return jsonify({"message": "Enrollment successful"})
 
 @app.route('/student/view_enrollments', methods=['GET'])
@@ -455,6 +455,25 @@ def view_all_enrollments():
 
     return jsonify(enrollments_data)
 
+@app.route('/advisor/remove_enrollment/<int:enrollment_id>', methods=['DELETE'])
+def remove_enrollment(enrollment_id):
+    # Find the enrollment record
+    enrollment = Enrollment.query.get(enrollment_id)
+    if not enrollment:
+        return jsonify({"message": "Enrollment not found"}), 404
+
+    # Find the associated section and decrement its current enrollment
+    section = Section.query.get(enrollment.section_id)
+    if section and section.current_enrollment > 0:
+        section.current_enrollment -= 1
+
+    # Delete the enrollment record
+    db.session.delete(enrollment)
+    db.session.commit()
+
+    return jsonify({"message": "Enrollment removed successfully"})
+
+
 # Routes for the advisor interface
 @app.route('/advisor/view_change_requests', methods=['GET'])
 def view_change_requests():
@@ -485,7 +504,7 @@ def edit_request():
 
     # Save changes to the database
     db.session.commit()
-
+    log_action("Edited a change request with id: "+str(request_id)+" by advisor")
     return jsonify({"message": "Change request updated successfully"})
 
 @app.route('/advisor/get_request/<int:request_id>', methods=['GET'])
