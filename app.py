@@ -350,9 +350,10 @@ def select_sections():
     # Filter out sections where the student is already enrolled
     available_sections = []
     for section in all_sections:
-        existing_enrollment = Enrollment.query.filter_by(student_id=student.id, section_id=section.id).first()
-        if not existing_enrollment:
-            available_sections.append(section)
+        if section.current_enrollment < section.capacity:
+            existing_enrollment = Enrollment.query.filter_by(student_id=student.id, section_id=section.id).first()
+            if not existing_enrollment:
+                available_sections.append(section)
 
     # Convert sections to a dictionary
     sections_data = [
