@@ -1,4 +1,124 @@
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: #005792;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    background-color: #00a8e8;
+    padding: 10px 0;
+}
+
+nav button, nav a {
+    padding: 10px 20px;
+    margin: 0 10px;
+    border: none;
+    background-color: #e3f2fd;
+    color: #005792;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+nav button:hover, nav a:hover {
+    background-color: #00a8e8;
+    color: white;
+}
+
+main {
+    flex-grow: 1; /* Added to make main content grow */
+    padding: 20px;
+}
+
+footer {
+    background-color: #005792;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+}
+
+footer p {
+    margin: 0;
+}
+
+#content-area {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px;
+}
+
+th {
+    background-color: #e3f2fd;
+    color: #005792;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+button {
+    background-color: #00a8e8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 4px 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #005792;
+}
+
+
+
+
+
+
+
+
+
+
+/*body {
     font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
@@ -37,7 +157,7 @@ nav button:hover {
 
 main {
     padding: 20px;
-    min-height: 400px; /* Adjust as needed */
+    min-height: 400px; 
 }
 
 footer p {
@@ -69,3 +189,204 @@ footer p {
 .degree-plan-table tr:nth-child(even) {
     background-color: #f9f9f9;
 }
+*/
+
+
+
+
+
+
+/*
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+}
+
+header, footer {
+    background: #333;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    background: #555;
+}
+
+nav button, nav a {
+    padding: 10px 15px;
+    margin: 10px;
+    border: none;
+    background: #f8f8f8;
+    cursor: pointer;
+    transition: background 0.3s;
+    text-decoration: none; 
+    color: black; 
+}
+
+nav button:hover, nav a:hover {
+    background: #ddd;
+}
+
+main {
+    padding: 20px;
+    min-height: 400px;
+}
+
+footer p {
+    margin: 0;
+}
+
+#content-area {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.degree-plan-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.degree-plan-table th, .degree-plan-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.degree-plan-table th {
+    background-color: #f4f4f4;
+}
+
+.degree-plan-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+*/
+
+
+
+
+/*
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: #005792;
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    background-color: #00a8e8;
+    padding: 10px 0;
+}
+
+nav button, nav a {
+    padding: 10px 20px;
+    margin: 0 10px;
+    border: none;
+    background-color: #e3f2fd;
+    color: #005792;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+nav button:hover, nav a:hover {
+    background-color: #00a8e8;
+    color: white;
+}
+
+main {
+    padding: 20px;
+    min-height: 400px;
+}
+
+footer {
+    background-color: #005792;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+footer p {
+    margin: 0;
+}
+
+#content-area {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px;
+}
+
+th {
+    background-color: #e3f2fd;
+    color: #005792;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+button {
+    background-color: #00a8e8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 4px 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #005792;
+}
+
+*/
