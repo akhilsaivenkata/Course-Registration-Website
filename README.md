@@ -41,6 +41,12 @@ The database schema includes:
     flask db migrate
     flask db upgrade
   ```
+4. **Run the Application**:
+   ```bash
+      flask run
+   ```
+5. **Access the Web App**: Go to http://127.0.0.1:5000 in your browser to start using the platform.
+   
 ### Usage
 
 - **Students**: 
