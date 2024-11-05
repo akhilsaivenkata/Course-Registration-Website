@@ -74,6 +74,3 @@ Contributions are welcome! Please:
 1. Fork the repository.
 2. Create a feature branch.
 3. Submit a pull request with a detailed description.
-
-### License
-This project is licensed under the Apache License 2.0.
